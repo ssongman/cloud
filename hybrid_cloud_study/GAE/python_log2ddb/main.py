@@ -1,7 +1,6 @@
 from __future__ import print_function # Python 2/3 compatibility
 from datetime import datetime
 
-import boto3
 import webapp2
 
 import os
@@ -72,14 +71,15 @@ class SendboxHandler(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
         somevalue = os.environ.get('PATH_TRANSLATED')
-        #logs_put_item(somevalue)
+        logs_put_item(somevalue)
         self.response.write(
-            'PATH_TRANSLATED={}'.format(somevalue))
+            '1111-PATH_TRANSLATED={}'.format(somevalue))
 # [END gae_python_sendbox]
 
 
 
 def logs_put_item(message):
+    import boto3
     #dynamodb = boto3.resource('dynamodb')
     #dynamodb = boto3.resource('dynamodb', region_name='us-west-2', endpoint_url="http://localhost:8000")
     dynamodb = boto3.resource('dynamodb', 

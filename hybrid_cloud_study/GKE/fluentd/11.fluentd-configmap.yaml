@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-s3
+  labels:
+    app: fluentd-s3
+    version: v1
+    #    kubernetes.io/cluster-service: "true"
+data:
+  fluent.conf: |-
+    <match pattern>
+      @type s3
+      aws_key_id AKIAZY5WUZS5VIEPXQTZ
+      aws_sec_key d0rJddEryNhsog02nRO2VhX5+kaKT2X4eDnUQMo6
+      s3_bucket userlist.awss3
+      s3_region ap_northeast_2
+      path logs/
+      # if you want to use ${tag} or %Y/%m/%d/ like syntax in path / s3_object_key_format,
+      # need to specify tag for ${tag} and time for %Y/%m/%d in <buffer> argument.
+      <buffer tag,time>
+        @type file
+        path /var/log/fluent/s3
+        timekey 3600 # 1 hour partition
+        timekey_wait 10m
+        timekey_use_utc true # use utc
+        chunk_limit_size 256m
+      </buffer>
+    </match>
+  kubernetes.conf: |-
+    <match fluent.**>
+      @type null
+    </match>      
+    
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key time
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<time>.+) (?<stream>stdout|stderr) [^ ]* (?<log>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
+        </pattern>
+      </parse>
+    </source>
+
+    <filter reform.**>
+      @type parser
+      format /^(?<severity>\w)(?<time>\d{4} [^\s]*)\s+(?<pid>\d+)\s+(?<source>[^ \]]+)\] (?<log>.*)/
+      reserve_data true
+      suppress_parse_error_log true
+      emit_invalid_record_to_error false
+      key_name log
+    </filter>
